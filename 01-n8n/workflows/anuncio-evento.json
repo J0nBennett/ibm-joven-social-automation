@@ -1,0 +1,149 @@
+{
+  "name": "IBM Joven - Anuncio de Evento",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Trigger Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 400]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "nota",
+              "value": "NODO PLACEHOLDER: Conectar aqui un nodo Google Sheets para leer la fila del anuncio. Filtrar por tipo='anuncio' y estado='pendiente'. Columnas necesarias: titulo, texto_base, fecha_publicacion, verse_ref (opcional), verse_text (opcional)."
+            }
+          ]
+        }
+      },
+      "id": "set-google-sheets",
+      "name": "[TODO] Google Sheets - Leer anuncio",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [500, 400]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "nota",
+              "value": "NODO PLACEHOLDER: Conectar aqui un nodo de LLM. Enviar el prompt de prompt_anuncio.md con los datos del evento. Esperar respuesta JSON con: hook, copy_post, copy_story, cta, hashtags, bloques_canva."
+            }
+          ]
+        }
+      },
+      "id": "set-llm",
+      "name": "[TODO] LLM - Generar copy anuncio",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [750, 400]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "nota",
+              "value": "NODO PLACEHOLDER: Conectar aqui un nodo Telegram para enviar el copy del anuncio al grupo de aprobaciones. Incluir: hook, copy_post, copy_story, datos del evento, bloques_canva."
+            }
+          ]
+        }
+      },
+      "id": "set-telegram",
+      "name": "[TODO] Telegram - Enviar para aprobacion",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [1000, 400]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "nota",
+              "value": "NODO PLACEHOLDER: Conectar aqui un nodo Google Sheets para actualizar la fila con copy_generado, hashtags, estado='aprobado' y aprobado_por."
+            }
+          ]
+        }
+      },
+      "id": "set-update-sheet",
+      "name": "[TODO] Google Sheets - Actualizar estado",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "content": "## Workflow: Anuncio de Evento\n\nFlujo completo:\n1. Trigger manual (el editor lo ejecuta cuando hay un anuncio nuevo)\n2. Leer fila del anuncio desde Google Sheets\n3. Enviar datos al LLM con prompt_anuncio.md\n4. Enviar preview a Telegram para aprobacion\n5. Si aprobado: actualizar Sheet con estado 'aprobado'\n6. El diseño en Canva y la publicacion son manuales\n\nCredenciales necesarias:\n- Google Sheets (OAuth2 o Service Account)\n- LLM API Key (OpenAI / Gemini)\n- Telegram Bot Token + Chat ID\n\nVer: 02-content/prompts/prompt_anuncio.md"
+      },
+      "id": "notas",
+      "name": "Notas del workflow",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [200, 100]
+    }
+  ],
+  "connections": {
+    "Trigger Manual": {
+      "main": [
+        [
+          {
+            "node": "[TODO] Google Sheets - Leer anuncio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "[TODO] Google Sheets - Leer anuncio": {
+      "main": [
+        [
+          {
+            "node": "[TODO] LLM - Generar copy anuncio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "[TODO] LLM - Generar copy anuncio": {
+      "main": [
+        [
+          {
+            "node": "[TODO] Telegram - Enviar para aprobacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "[TODO] Telegram - Enviar para aprobacion": {
+      "main": [
+        [
+          {
+            "node": "[TODO] Google Sheets - Actualizar estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "ibm-joven"
+    },
+    {
+      "name": "anuncio"
+    }
+  ]
+}

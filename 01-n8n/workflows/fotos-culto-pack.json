@@ -1,0 +1,149 @@
+{
+  "name": "IBM Joven - Fotos del Culto Pack",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Trigger Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 400]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "nota",
+              "value": "NODO PLACEHOLDER: Conectar aqui un nodo Google Sheets para leer la fila de fotos. Filtrar por tipo='fotos' y estado='pendiente'. Columnas necesarias: titulo, texto_base, fecha_publicacion."
+            }
+          ]
+        }
+      },
+      "id": "set-google-sheets",
+      "name": "[TODO] Google Sheets - Leer datos del culto",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [500, 400]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "nota",
+              "value": "NODO PLACEHOLDER: Conectar aqui un nodo de LLM. Enviar el prompt de prompt_caption_fotos.md con los datos del culto. Esperar respuesta JSON con: copy, hashtags, versiculo_sugerido (referencia + texto)."
+            }
+          ]
+        }
+      },
+      "id": "set-llm",
+      "name": "[TODO] LLM - Generar caption",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [750, 400]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "nota",
+              "value": "NODO PLACEHOLDER: Conectar aqui un nodo Telegram para enviar el caption generado y el versiculo sugerido al grupo de aprobaciones. El aprobador debe verificar que el versiculo sea correcto."
+            }
+          ]
+        }
+      },
+      "id": "set-telegram",
+      "name": "[TODO] Telegram - Enviar para aprobacion",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [1000, 400]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "nota",
+              "value": "NODO PLACEHOLDER: Conectar aqui un nodo Google Sheets para actualizar la fila con copy_generado, hashtags, verse_ref, verse_text (del versiculo sugerido), estado='aprobado' y aprobado_por."
+            }
+          ]
+        }
+      },
+      "id": "set-update-sheet",
+      "name": "[TODO] Google Sheets - Actualizar estado",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "content": "## Workflow: Fotos del Culto Pack\n\nFlujo completo:\n1. Trigger manual (el editor lo ejecuta despues de seleccionar las fotos)\n2. Leer datos del culto desde Google Sheets\n3. Enviar datos al LLM con prompt_caption_fotos.md\n4. Enviar caption + versiculo sugerido a Telegram para aprobacion\n5. Si aprobado: actualizar Sheet con estado 'aprobado'\n6. El armado del carrusel/album y la publicacion son manuales\n\nNota: las fotos se seleccionan y suben manualmente a una carpeta compartida.\nEste workflow solo genera el caption y lo envia para aprobacion.\n\nCredenciales necesarias:\n- Google Sheets (OAuth2 o Service Account)\n- LLM API Key (OpenAI / Gemini)\n- Telegram Bot Token + Chat ID\n\nVer: 02-content/prompts/prompt_caption_fotos.md"
+      },
+      "id": "notas",
+      "name": "Notas del workflow",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [200, 100]
+    }
+  ],
+  "connections": {
+    "Trigger Manual": {
+      "main": [
+        [
+          {
+            "node": "[TODO] Google Sheets - Leer datos del culto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "[TODO] Google Sheets - Leer datos del culto": {
+      "main": [
+        [
+          {
+            "node": "[TODO] LLM - Generar caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "[TODO] LLM - Generar caption": {
+      "main": [
+        [
+          {
+            "node": "[TODO] Telegram - Enviar para aprobacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "[TODO] Telegram - Enviar para aprobacion": {
+      "main": [
+        [
+          {
+            "node": "[TODO] Google Sheets - Actualizar estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "ibm-joven"
+    },
+    {
+      "name": "fotos"
+    }
+  ]
+}
