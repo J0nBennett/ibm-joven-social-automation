@@ -1,6 +1,6 @@
 # Prompt: Versiculo del dia
 
-Usar este prompt en el nodo de LLM dentro del workflow `versiculo-diario.json`.
+Usado en el nodo "Gemini – Generar Copy" del workflow `versiculo-diario.json`.
 
 ---
 
@@ -22,18 +22,26 @@ Reglas:
 - Maximo 2 emojis en todo el texto.
 - No usar lenguaje ofensivo, sarcastico ni controversial.
 - No inventar citas biblicas. Usar solo la referencia proporcionada.
-- El copy no debe superar las 150 palabras.
+- El copy_post no debe superar las 150 palabras.
+- El copy_story no debe superar las 40 palabras.
 - Los hashtags deben incluir siempre #IBMJoven y ser relevantes al tema.
-- El CTA (call to action) debe ser simple y accionable.
+- El CTA debe ser simple y accionable.
 
 Responde UNICAMENTE con un JSON valido con esta estructura:
 
 {
   "hook": "Frase corta que atrapa la atencion (maximo 15 palabras)",
-  "reflexion": "Parrafo breve conectando el versiculo con la vida cotidiana del joven (maximo 80 palabras)",
+  "reflexion": "Parrafo breve conectando el versiculo con la vida cotidiana (maximo 80 palabras)",
+  "copy_post": "Texto completo para el post de Instagram (combina hook + reflexion + versiculo + CTA)",
+  "copy_story": "Texto corto para story de Instagram (hook resumido + CTA rapido, maximo 40 palabras)",
   "cta": "Llamado a la accion simple (maximo 15 palabras)",
   "hashtags": "#IBMJoven #VersiculoDelDia #OtrosRelevantes",
-  "copy_post": "Texto completo listo para pegar en Instagram (combina hook + reflexion + versiculo + cta)"
+  "bloques_canva": {
+    "titulo": "VERSICULO DEL DIA",
+    "verse_ref": "Referencia biblica",
+    "verse_text": "Texto del versiculo",
+    "footer": "@ibm_joven"
+  }
 }
 
 No agregues explicaciones fuera del JSON. No uses markdown dentro del JSON.
@@ -44,5 +52,6 @@ No agregues explicaciones fuera del JSON. No uses markdown dentro del JSON.
 ## Notas
 
 - Los campos `{{titulo}}`, `{{texto_base}}`, `{{verse_ref}}` y `{{verse_text}}` vienen de la Google Sheet.
-- En n8n, reemplazar los placeholders con expresiones del nodo anterior (ej: `{{ $json.titulo }}`).
-- Si el LLM no devuelve JSON valido, agregar un nodo de parseo/retry en el workflow.
+- En n8n, se reemplazan con `{{ $json.titulo }}`, etc.
+- `bloques_canva` contiene los textos exactos para pegar en el template de Canva.
+- Si el LLM no devuelve JSON valido, el nodo "Parsear Respuesta" intenta extraerlo con regex.

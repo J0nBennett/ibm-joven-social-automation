@@ -1,6 +1,6 @@
 # Prompt: Anuncio de evento
 
-Usar este prompt en el nodo de LLM dentro del workflow `anuncio-evento.json`.
+Usado en el nodo "Gemini – Generar Copy" del workflow `anuncio-evento.json`.
 
 ---
 
@@ -28,12 +28,13 @@ Reglas:
 - El copy de la story debe ser mas corto (maximo 40 palabras).
 - Los hashtags deben incluir siempre #IBMJoven.
 - El CTA debe invitar a participar o compartir.
+- Los bloques_canva deben tener textos listos para pegar en el template.
 
 Responde UNICAMENTE con un JSON valido con esta estructura:
 
 {
   "hook": "Frase corta que genera curiosidad o entusiasmo (maximo 12 palabras)",
-  "copy_post": "Texto completo para el post de Instagram (incluye hook, info del evento, versiculo si aplica, CTA)",
+  "copy_post": "Texto completo para el post de Instagram",
   "copy_story": "Texto corto para la story de Instagram (directo, con CTA)",
   "cta": "Llamado a la accion (maximo 12 palabras)",
   "hashtags": "#IBMJoven #OtrosRelevantes",
@@ -41,7 +42,7 @@ Responde UNICAMENTE con un JSON valido con esta estructura:
     "titulo": "Texto para el bloque de titulo en Canva",
     "subtitulo": "Fecha, hora y lugar",
     "cuerpo": "Frase clave o versiculo corto",
-    "footer": "CTA o info de contacto"
+    "footer": "@ibm_joven"
   }
 }
 
@@ -52,6 +53,6 @@ No agregues explicaciones fuera del JSON. No uses markdown dentro del JSON.
 
 ## Notas
 
-- Los `bloques_canva` son sugerencias de texto para pegar en los placeholders del template de Canva.
-- Si el evento no tiene versiculo asociado, el LLM deberia omitir la referencia y no inventar una.
-- En n8n, reemplazar los placeholders con expresiones del nodo anterior.
+- Los `bloques_canva` son textos exactos para pegar en los placeholders del template Canva.
+- Si el evento no tiene versiculo, el campo `verse_ref` y `verse_text` llegan vacios y el LLM lo omite.
+- En n8n, los placeholders se reemplazan con `{{ $json.titulo }}`, etc.
