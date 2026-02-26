@@ -52,6 +52,45 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "" },
+          "conditions": [
+            {
+              "id": "check-row",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "isNotEmpty" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-hay-fila",
+      "name": "Hay fila pendiente?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=Info: No hay anuncios pendientes en la Sheet. Agrega una fila con tipo=anuncio y estado=pendiente.",
+        "additionalFields": {}
+      },
+      "id": "telegram-sin-pendientes",
+      "name": "Aviso Sin Pendientes",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [940, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "CONFIGURAR",
+          "name": "Telegram Bot IBM Joven"
+        }
+      }
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
         "authentication": "genericCredentialType",
@@ -59,13 +98,15 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"Eres un community manager cristiano para IBM Joven (ministerio juvenil de la Iglesia Bautista Maranata).\\n\\nGenera contenido para un POST + STORY de Instagram anunciando un evento/actividad.\\n\\nDatos del evento:\\n- Título: {{ $json.titulo }}\\n- Descripción: {{ $json.texto_base }}\\n- Fecha publicación: {{ $json.fecha_publicacion }}\\n- Versículo relacionado (opcional): {{ $json.verse_ref }} – {{ $json.verse_text }}\\n\\nReglas:\\n- Tono cercano, joven, entusiasta pero medido\\n- Máximo 2 emojis por texto\\n- Incluir: qué, cuándo, dónde\\n- Post máx 120 palabras, story máx 40 palabras\\n- Hook de máx 12 palabras\\n- CTA de máx 12 palabras que invite a participar\\n- Incluir #IBMJoven en hashtags\\n- bloques_canva con textos exactos para pegar en template\\n\\nResponde SOLO con JSON válido (sin markdown, sin ```json):\\n{\\n  \\\"hook\\\": \\\"\\\",\\n  \\\"copy_post\\\": \\\"\\\",\\n  \\\"copy_story\\\": \\\"\\\",\\n  \\\"cta\\\": \\\"\\\",\\n  \\\"hashtags\\\": \\\"\\\",\\n  \\\"bloques_canva\\\": {\\n    \\\"titulo\\\": \\\"\\\",\\n    \\\"subtitulo\\\": \\\"\\\",\\n    \\\"cuerpo\\\": \\\"\\\",\\n    \\\"footer\\\": \\\"@ibm_joven\\\"\\n  }\\n}\"\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"topP\": 0.95,\n    \"maxOutputTokens\": 1024\n  }\n}",
-        "options": {}
+        "options": {
+          "timeout": 30000
+        }
       },
       "id": "gemini-llm",
       "name": "Gemini – Generar Copy",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [700, 300],
+      "position": [940, 300],
       "credentials": {
         "httpQueryAuth": {
           "id": "CONFIGURAR",
@@ -76,13 +117,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $input.first().json;\nconst text = response.candidates[0].content.parts[0].text;\n\nlet clean = text.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\nlet parsed;\n\ntry {\n  parsed = JSON.parse(clean);\n} catch (e) {\n  const match = clean.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    parsed = JSON.parse(match[0]);\n  } else {\n    throw new Error('No se pudo parsear respuesta LLM: ' + clean.substring(0, 200));\n  }\n}\n\nreturn [{ json: parsed }];"
+        "jsCode": "const response = $input.first().json;\n\nif (!response.candidates || !response.candidates[0] || !response.candidates[0].content) {\n  const reason = response.candidates?.[0]?.finishReason || 'sin respuesta';\n  throw new Error('Gemini no genero contenido. Razon: ' + reason);\n}\n\nconst text = response.candidates[0].content.parts[0].text;\n\nlet clean = text.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\nlet parsed;\n\ntry {\n  parsed = JSON.parse(clean);\n} catch (e) {\n  const match = clean.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    parsed = JSON.parse(match[0]);\n  } else {\n    throw new Error('No se pudo parsear respuesta LLM: ' + clean.substring(0, 200));\n  }\n}\n\nconst required = ['hook', 'copy_post', 'cta', 'hashtags', 'bloques_canva'];\nconst missing = required.filter(f => !parsed[f]);\nif (missing.length > 0) {\n  throw new Error('Campos faltantes en respuesta LLM: ' + missing.join(', '));\n}\n\n// Sanitizar: rechazar si el LLM genero URLs sospechosas o codigo\nconst allText = JSON.stringify(parsed);\nconst suspicious = /(https?:\\/\\/(?!www\\.canva\\.com|drive\\.google\\.com)[^\\s\"]+|<script|javascript:|eval\\(|document\\.)/i;\nif (suspicious.test(allText)) {\n  throw new Error('Contenido sospechoso detectado en respuesta LLM. Revisar manualmente.');\n}\n\nreturn [{ json: parsed }];"
       },
       "id": "parse-response",
       "name": "Parsear Respuesta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [940, 300]
+      "position": [1180, 300]
     },
     {
       "parameters": {
@@ -108,7 +149,7 @@
       "name": "PACK_LISTO",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [1180, 300]
+      "position": [1420, 300]
     },
     {
       "parameters": {
@@ -122,7 +163,7 @@
       "name": "Enviar Pack Telegram",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1420, 300],
+      "position": [1660, 300],
       "credentials": {
         "telegramApi": {
           "id": "CONFIGURAR",
@@ -163,7 +204,7 @@
       "name": "Actualizar Sheet",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
-      "position": [1660, 300],
+      "position": [1900, 300],
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "CONFIGURAR",
@@ -173,7 +214,25 @@
     },
     {
       "parameters": {
-        "content": "## Flujo: Anuncio de Evento\n\nTrigger: Manual (editor carga evento en Sheet y ejecuta).\n\nPasos:\n1. Lee primera fila con tipo=anuncio, estado=pendiente\n2. Envia datos al LLM (Gemini) para generar copy + story + bloques_canva\n3. Parsea la respuesta JSON\n4. Arma PACK_LISTO con links a templates Canva de anuncio\n5. Envia pack formateado por Telegram (incluye bloques_canva)\n6. Actualiza fila en Google Sheets (estado -> listo)\n\nCredenciales necesarias:\n- Google Sheets OAuth2 (lectura/escritura)\n- Gemini API Key (httpQueryAuth: name=key)\n- Telegram Bot Token\n\nVariables de entorno:\n- GOOGLE_SHEETS_ID\n- GOOGLE_SHEETS_TAB\n- TELEGRAM_CHAT_ID\n- GEMINI_API_KEY\n\nDiferencia con versiculo:\n- Genera copy_story (40 palabras)\n- Incluye bloques_canva con titulo/subtitulo/cuerpo/footer\n- Template Canva diferente (diseno de evento)",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=ERROR en flujo Anuncio de Evento:\n\n{{ $json.error?.message || JSON.stringify($json) }}\n\nRevisa la ejecucion en n8n para mas detalles.",
+        "additionalFields": {}
+      },
+      "id": "telegram-error",
+      "name": "Notificar Error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1420, 540],
+      "credentials": {
+        "telegramApi": {
+          "id": "CONFIGURAR",
+          "name": "Telegram Bot IBM Joven"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Flujo: Anuncio de Evento\n\nTrigger: Manual (editor carga evento en Sheet y ejecuta).\n\nPasos:\n1. Lee primera fila con tipo=anuncio, estado=pendiente\n2. Verifica que haya una fila (si no, avisa por Telegram)\n3. Envia datos al LLM (Gemini) para generar copy + story + bloques_canva\n4. Parsea y valida la respuesta JSON\n5. Arma PACK_LISTO con links a templates Canva de anuncio\n6. Envia pack formateado por Telegram (incluye bloques_canva)\n7. Actualiza fila en Google Sheets (estado -> listo)\n\nManejo de errores:\n- Sin filas pendientes -> aviso por Telegram\n- Error en Gemini o parseo -> notificacion de error por Telegram\n\nCredenciales necesarias:\n- Google Sheets OAuth2 (lectura/escritura)\n- Gemini API Key (httpQueryAuth: name=key)\n- Telegram Bot Token",
         "width": 400,
         "height": 400
       },
@@ -192,7 +251,13 @@
     },
     "Leer Sheet": {
       "main": [
-        [{ "node": "Gemini – Generar Copy", "type": "main", "index": 0 }]
+        [{ "node": "Hay fila pendiente?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Hay fila pendiente?": {
+      "main": [
+        [{ "node": "Gemini – Generar Copy", "type": "main", "index": 0 }],
+        [{ "node": "Aviso Sin Pendientes", "type": "main", "index": 0 }]
       ]
     },
     "Gemini – Generar Copy": {
@@ -217,12 +282,14 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": ""
   },
   "staticData": null,
   "tags": [
     { "name": "ibm-joven" },
     { "name": "anuncio" },
     { "name": "produccion" }
-  ]
+  ],
+  "pinData": {}
 }
