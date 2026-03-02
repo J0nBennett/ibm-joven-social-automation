@@ -91,18 +91,18 @@ Usar para: fotos del culto/servicio.
 
 Campos de texto editables en cada template:
 
-| Placeholder | Que poner | Ejemplo |
-|---|---|---|
-| `{{HOOK}}` | Frase gancho (del campo `hook`) | "Arrancas la semana sin fuerzas?" |
-| `{{VERSE_REF}}` | Referencia biblica | "Filipenses 4:13" |
-| `{{VERSE_TEXT}}` | Texto del versiculo | "Todo lo puedo en Cristo que me fortalece" |
-| `{{CTA}}` | Llamado a la accion | "Compartilo con alguien que lo necesite" |
-| `{{FOOTER}}` | Info fija | "@ibm_joven" |
-| `{{TITULO}}` | Titulo del evento o seccion | "NOCHE DE JOVENES" |
-| `{{SUBTITULO}}` | Fecha/hora/lugar (solo anuncios) | "Sabado 1 de marzo - 20:00 h" |
-| `{{CUERPO}}` | Texto adicional (solo anuncios) | Frase clave o info extra |
+| Placeholder | Que poner | Fuente en el pack | Ejemplo |
+|---|---|---|---|
+| `{{HOOK}}` | Frase gancho | campo `hook` (del mensaje Telegram) | "Arrancas la semana sin fuerzas?" |
+| `{{VERSE_REF}}` | Referencia biblica | `bloques_canva.verse_ref` | "Filipenses 4:13" |
+| `{{VERSE_TEXT}}` | Texto del versiculo | `bloques_canva.verse_text` | "Todo lo puedo en Cristo que me fortalece" |
+| `{{CTA}}` | Llamado a la accion | campo `cta` (del mensaje Telegram) | "Compartilo con alguien que lo necesite" |
+| `{{FOOTER}}` | Info fija | `bloques_canva.footer` | "@ibm_joven" |
+| `{{TITULO}}` | Titulo del evento o seccion | `bloques_canva.titulo` | "NOCHE DE JOVENES" |
+| `{{SUBTITULO}}` | Fecha/hora/lugar (solo anuncios) | `bloques_canva.subtitulo` | "Sabado 1 de marzo - 20:00 h" |
+| `{{CUERPO}}` | Texto adicional (solo anuncios) | `bloques_canva.cuerpo` | Frase clave o info extra |
 
-> En Canva, crear cuadros de texto con estos nombres. Al usar el template, reemplazar con el contenido real de `bloques_canva`.
+> En Canva, crear cuadros de texto con estos nombres. Los campos de `bloques_canva` se pegan directamente. Para `{{HOOK}}` y `{{CTA}}`, copiarlos del mensaje de Telegram (son campos separados del pack).
 
 ---
 
@@ -111,11 +111,11 @@ Campos de texto editables en cada template:
 Pegar aqui los links una vez creados (no commitear si contienen tokens de sesion):
 
 ```
-TEMPLATE_POST_VERSICULO=https://www.canva.com/design/XXXXX/edit
-TEMPLATE_STORY_VERSICULO=https://www.canva.com/design/XXXXX/edit
-TEMPLATE_POST_ANUNCIO=https://www.canva.com/design/XXXXX/edit
-TEMPLATE_STORY_ANUNCIO=https://www.canva.com/design/XXXXX/edit
-TEMPLATE_CARRUSEL_FOTOS=https://www.canva.com/design/XXXXX/edit
+TEMPLATE_POST_VERSICULO=https://www.canva.com/design/DAHCbkkduC4/ACvj4_ioO4mR7JOAQPHsjA/edit
+TEMPLATE_STORY_VERSICULO=https://www.canva.com/design/DAHCb8S17NY/S-doVdGwryMCO8aqwRTblQ/edit
+TEMPLATE_POST_ANUNCIO=https://www.canva.com/design/DAHCb1_SdU4/Aa2WuLc9uVUjMJMXbiu1oA/edit
+TEMPLATE_STORY_ANUNCIO=https://www.canva.com/design/DAHCdAzm_cw/6qJV2qENs5MUNdS26QNX1w/edit
+TEMPLATE_CARRUSEL_FOTOS=https://www.canva.com/design/DAHCdIrkgZM/DanL_9kdQGPnMSZnD_AXng/edit
 ```
 
 > Estos links se ponen tambien en el nodo PACK_LISTO de cada workflow.

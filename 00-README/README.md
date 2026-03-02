@@ -34,6 +34,7 @@ Nada se publica sin que una persona lo revise. La automatizacion genera textos, 
 ibm-joven-social-automation/
 ├── .env.example              # Variables de entorno (plantilla)
 ├── .gitignore
+├── docker-compose.yml        # Docker Compose para n8n self-hosted
 ├── 00-README/
 │   ├── README.md             # Este archivo
 │   ├── QUICKSTART.md         # Como empezar desde cero
@@ -60,9 +61,10 @@ ibm-joven-social-automation/
 │       ├── brand-kit.md      # Identidad visual
 │       └── exports/          # PNGs exportados (no versionados)
 ├── 04-ops/
-│   └── checklists/
-│       ├── checklist_publicacion.md
-│       └── checklist_aprobacion.md
+│   ├── checklists/
+│   │   ├── checklist_publicacion.md
+│   │   └── checklist_aprobacion.md
+│   └── troubleshooting.md    # Guia de problemas comunes
 └── 05-security/
     └── safe_ai_rules.md
 ```
@@ -78,7 +80,7 @@ Sheet (pendiente) → n8n → Gemini (genera copy) → PACK_LISTO → Telegram �
 El output es un JSON estandarizado (ver `02-content/OUTPUT_ESTANDAR.md`) con:
 - `hook`, `copy_post`, `copy_story`, `hashtags`, `cta`
 - `bloques_canva` (textos exactos para pegar en Canva)
-- `links_templates` (URLs a los templates de Canva)
+- `link_template_post` / `link_template_story` (URLs a los templates de Canva)
 
 ## Reglas del repositorio
 

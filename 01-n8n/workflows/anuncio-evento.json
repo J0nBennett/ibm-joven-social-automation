@@ -97,7 +97,7 @@
         "genericAuthType": "httpQueryAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"Eres un community manager cristiano para IBM Joven (ministerio juvenil de la Iglesia Bautista Maranata).\\n\\nGenera contenido para un POST + STORY de Instagram anunciando un evento/actividad.\\n\\nDatos del evento:\\n- Título: {{ $json.titulo }}\\n- Descripción: {{ $json.texto_base }}\\n- Fecha publicación: {{ $json.fecha_publicacion }}\\n- Versículo relacionado (opcional): {{ $json.verse_ref }} – {{ $json.verse_text }}\\n\\nReglas:\\n- Tono cercano, joven, entusiasta pero medido\\n- Máximo 2 emojis por texto\\n- Incluir: qué, cuándo, dónde\\n- Post máx 120 palabras, story máx 40 palabras\\n- Hook de máx 12 palabras\\n- CTA de máx 12 palabras que invite a participar\\n- Incluir #IBMJoven en hashtags\\n- bloques_canva con textos exactos para pegar en template\\n\\nResponde SOLO con JSON válido (sin markdown, sin ```json):\\n{\\n  \\\"hook\\\": \\\"\\\",\\n  \\\"copy_post\\\": \\\"\\\",\\n  \\\"copy_story\\\": \\\"\\\",\\n  \\\"cta\\\": \\\"\\\",\\n  \\\"hashtags\\\": \\\"\\\",\\n  \\\"bloques_canva\\\": {\\n    \\\"titulo\\\": \\\"\\\",\\n    \\\"subtitulo\\\": \\\"\\\",\\n    \\\"cuerpo\\\": \\\"\\\",\\n    \\\"footer\\\": \\\"@ibm_joven\\\"\\n  }\\n}\"\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"topP\": 0.95,\n    \"maxOutputTokens\": 1024\n  }\n}",
+        "jsonBody": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"Sos un community manager cristiano para IBM Joven (ministerio juvenil de la Iglesia Bautista Maranata).\\n\\nGenera contenido para un POST + STORY de Instagram anunciando un evento/actividad.\\n\\nDatos del evento:\\n- Título: {{ $json.titulo }}\\n- Descripción: {{ $json.texto_base }}\\n- Fecha publicación: {{ $json.fecha_publicacion }}\\n- Versículo relacionado (opcional): {{ $json.verse_ref }} – {{ $json.verse_text }}\\n\\nReglas:\\n- Tono cercano, joven, entusiasta pero medido\\n- Máximo 2 emojis por texto\\n- Incluir: qué, cuándo, dónde\\n- Post máx 120 palabras, story máx 40 palabras\\n- Hook de máx 12 palabras\\n- CTA de máx 12 palabras que invite a participar\\n- Incluir #IBMJoven en hashtags\\n- bloques_canva con textos exactos para pegar en template\\n\\nResponde SOLO con JSON válido (sin markdown, sin ```json):\\n{\\n  \\\"hook\\\": \\\"\\\",\\n  \\\"copy_post\\\": \\\"\\\",\\n  \\\"copy_story\\\": \\\"\\\",\\n  \\\"cta\\\": \\\"\\\",\\n  \\\"hashtags\\\": \\\"\\\",\\n  \\\"bloques_canva\\\": {\\n    \\\"titulo\\\": \\\"\\\",\\n    \\\"subtitulo\\\": \\\"\\\",\\n    \\\"cuerpo\\\": \\\"\\\",\\n    \\\"footer\\\": \\\"@ibm_joven\\\"\\n  }\\n}\"\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"topP\": 0.95,\n    \"maxOutputTokens\": 1024\n  }\n}",
         "options": {
           "timeout": 30000
         }
@@ -107,6 +107,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [940, 300],
+      "onError": "continueErrorOutput",
       "credentials": {
         "httpQueryAuth": {
           "id": "CONFIGURAR",
@@ -117,13 +118,14 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $input.first().json;\n\nif (!response.candidates || !response.candidates[0] || !response.candidates[0].content) {\n  const reason = response.candidates?.[0]?.finishReason || 'sin respuesta';\n  throw new Error('Gemini no genero contenido. Razon: ' + reason);\n}\n\nconst text = response.candidates[0].content.parts[0].text;\n\nlet clean = text.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\nlet parsed;\n\ntry {\n  parsed = JSON.parse(clean);\n} catch (e) {\n  const match = clean.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    parsed = JSON.parse(match[0]);\n  } else {\n    throw new Error('No se pudo parsear respuesta LLM: ' + clean.substring(0, 200));\n  }\n}\n\nconst required = ['hook', 'copy_post', 'cta', 'hashtags', 'bloques_canva'];\nconst missing = required.filter(f => !parsed[f]);\nif (missing.length > 0) {\n  throw new Error('Campos faltantes en respuesta LLM: ' + missing.join(', '));\n}\n\n// Sanitizar: rechazar si el LLM genero URLs sospechosas o codigo\nconst allText = JSON.stringify(parsed);\nconst suspicious = /(https?:\\/\\/(?!www\\.canva\\.com|drive\\.google\\.com)[^\\s\"]+|<script|javascript:|eval\\(|document\\.)/i;\nif (suspicious.test(allText)) {\n  throw new Error('Contenido sospechoso detectado en respuesta LLM. Revisar manualmente.');\n}\n\nreturn [{ json: parsed }];"
+        "jsCode": "const response = $input.first().json;\n\nif (!response.candidates || !response.candidates[0] || !response.candidates[0].content) {\n  const reason = response.candidates?.[0]?.finishReason || 'sin respuesta';\n  throw new Error('Gemini no genero contenido. Razon: ' + reason);\n}\n\nconst text = response.candidates[0].content.parts[0].text;\n\nlet clean = text.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\nlet parsed;\n\ntry {\n  parsed = JSON.parse(clean);\n} catch (e) {\n  const match = clean.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    parsed = JSON.parse(match[0]);\n  } else {\n    throw new Error('No se pudo parsear respuesta LLM: ' + clean.substring(0, 200));\n  }\n}\n\nconst required = ['hook', 'copy_post', 'copy_story', 'cta', 'hashtags', 'bloques_canva'];\nconst missing = required.filter(f => !parsed[f]);\nif (missing.length > 0) {\n  throw new Error('Campos faltantes en respuesta LLM: ' + missing.join(', '));\n}\n\n// Sanitizar: rechazar si el LLM genero URLs sospechosas o codigo\nconst allText = JSON.stringify(parsed);\nconst suspicious = /(https?:\\/\\/(?!www\\.canva\\.com|drive\\.google\\.com)[^\\s\"]+|<script|javascript:|eval\\(|document\\.)/i;\nif (suspicious.test(allText)) {\n  throw new Error('Contenido sospechoso detectado en respuesta LLM. Revisar manualmente.');\n}\n\nreturn [{ json: parsed }];"
       },
       "id": "parse-response",
       "name": "Parsear Respuesta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1180, 300]
+      "position": [1180, 300],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -137,8 +139,8 @@
             { "id": "hashtags", "name": "hashtags", "value": "={{ $json.hashtags }}", "type": "string" },
             { "id": "cta", "name": "cta", "value": "={{ $json.cta }}", "type": "string" },
             { "id": "bloques_canva", "name": "bloques_canva", "value": "={{ JSON.stringify($json.bloques_canva) }}", "type": "string" },
-            { "id": "link_template_post", "name": "link_template_post", "value": "https://www.canva.com/design/TEMPLATE_POST_ANUNCIO/edit", "type": "string" },
-            { "id": "link_template_story", "name": "link_template_story", "value": "https://www.canva.com/design/TEMPLATE_STORY_ANUNCIO/edit", "type": "string" },
+            { "id": "link_template_post", "name": "link_template_post", "value": "https://www.canva.com/design/DAHCb1_SdU4/Aa2WuLc9uVUjMJMXbiu1oA/edit", "type": "string" },
+            { "id": "link_template_story", "name": "link_template_story", "value": "https://www.canva.com/design/DAHCdAzm_cw/6qJV2qENs5MUNdS26QNX1w/edit", "type": "string" },
             { "id": "tipo", "name": "tipo", "value": "anuncio", "type": "string" },
             { "id": "fecha", "name": "fecha", "value": "={{ new Date().toISOString().slice(0,10) }}", "type": "string" },
             { "id": "row_id", "name": "row_id", "value": "={{ $('Leer Sheet').first().json.id }}", "type": "string" }
@@ -262,12 +264,14 @@
     },
     "Gemini – Generar Copy": {
       "main": [
-        [{ "node": "Parsear Respuesta", "type": "main", "index": 0 }]
+        [{ "node": "Parsear Respuesta", "type": "main", "index": 0 }],
+        [{ "node": "Notificar Error", "type": "main", "index": 0 }]
       ]
     },
     "Parsear Respuesta": {
       "main": [
-        [{ "node": "PACK_LISTO", "type": "main", "index": 0 }]
+        [{ "node": "PACK_LISTO", "type": "main", "index": 0 }],
+        [{ "node": "Notificar Error", "type": "main", "index": 0 }]
       ]
     },
     "PACK_LISTO": {

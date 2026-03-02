@@ -81,7 +81,7 @@ Reglas:
 |                                  |
 |  Compartilo con alguien          |  <- Fuente cuerpo, COLOR_TEXTO_CLARO
 |                                  |
-|  [Logo IBM Joven] @ibmjoven      |
+|  [Logo IBM Joven] @ibm_joven     |
 +----------------------------------+
 ```
 

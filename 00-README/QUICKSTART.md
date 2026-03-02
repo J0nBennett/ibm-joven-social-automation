@@ -85,19 +85,28 @@ imagen_export_link | estado | aprobado_por | timestamp
    - **Gemini API Key**: crear credencial tipo "Query Auth" con `name=key`, `value=tu_api_key`.
    - **Telegram Bot**: pegar el bot token.
 
-### Opcion B: Self-host con Docker
+### Opcion B: Self-host con Docker Compose (recomendado)
 
 ```bash
-mkdir -p ~/n8n-data
-docker run -d \
-  --name n8n \
-  -p 5678:5678 \
-  -v ~/n8n-data:/home/node/.n8n \
-  --env-file .env \
-  n8nio/n8n
+docker-compose up -d
 ```
 
+Esto levanta n8n con las variables de `.env`, timezone de Argentina y volumen persistente.
+
+> Alternativa sin Docker Compose:
+> ```bash
+> mkdir -p ~/n8n-data
+> docker run -d \
+>   --name n8n \
+>   -p 5678:5678 \
+>   -v ~/n8n-data:/home/node/.n8n \
+>   --env-file .env \
+>   n8nio/n8n:1.76.1
+> ```
+
 Abrir `http://localhost:5678` e importar los workflows.
+
+> **Importante:** Cambiar `N8N_BASIC_AUTH_PASSWORD` en `.env` antes de deployar. No usar el valor por defecto.
 
 ---
 

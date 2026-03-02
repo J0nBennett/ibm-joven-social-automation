@@ -14,8 +14,10 @@ Canva siempre sean predecibles.
 | `hashtags`         | string   | Hashtags separados por espacio                  | "#IBMJoven #Devocional #Fe"              |
 | `cta`              | string   | Llamada a la acción (max 15 palabras)           | "Comparte con alguien que lo necesita"   |
 | `bloques_canva`    | object   | Textos exactos para pegar en template Canva     | Ver detalle abajo                        |
-| `links_templates`  | object   | URLs a templates Canva (post / story / carrusel)| Ver detalle abajo                        |
-| `assets_links`     | object   | Links a carpeta Drive / fotos / exports         | Ver detalle abajo                        |
+| `link_template_post` | string | URL al template Canva de post                 | `https://www.canva.com/design/XXX/edit`  |
+| `link_template_story`| string | URL al template Canva de story                | `https://www.canva.com/design/YYY/edit`  |
+| `link_template_carrusel`| string | URL al template Canva de carrusel (solo fotos)| `https://www.canva.com/design/ZZZ/edit`|
+| `drive_folder`     | string   | URL a carpeta Drive con fotos (solo fotos)      | `https://drive.google.com/drive/folders/XXX` |
 
 ## `bloques_canva` (textos para pegar en Canva)
 
@@ -35,33 +37,20 @@ Canva siempre sean predecibles.
 > - **Anuncio:** usa `titulo`, `subtitulo`, `cuerpo`, `footer`.
 > - **Fotos:** usa `titulo`, `footer` (el carrusel es visual).
 
-## `links_templates`
+## Links a templates (campos planos)
 
-```json
-{
-  "post":     "https://www.canva.com/design/XXXXX/edit",
-  "story":    "https://www.canva.com/design/YYYYY/edit",
-  "carrusel": "https://www.canva.com/design/ZZZZZ/edit"
-}
+En el nodo PACK_LISTO, los links se configuran como campos planos (no anidados):
+
+```
+link_template_post      → URL del template de post en Canva
+link_template_story     → URL del template de story en Canva
+link_template_carrusel  → URL del template de carrusel en Canva (solo flujo fotos)
+drive_folder            → URL de carpeta Google Drive con fotos (solo flujo fotos)
 ```
 
 Estos links se configuran una vez en el nodo Set de cada workflow y apuntan a
 los templates base de Canva. El operador abre el link, duplica el diseño y
 pega los textos de `bloques_canva`.
-
-## `assets_links`
-
-```json
-{
-  "drive_folder": "https://drive.google.com/drive/folders/XXXXX",
-  "fotos":        ["url_foto_1", "url_foto_2"],
-  "export_link":  ""
-}
-```
-
-- `drive_folder`: Carpeta compartida donde se guardan las fotos originales.
-- `fotos`: Array de URLs (solo aplica al flujo de fotos-culto).
-- `export_link`: Se llena manualmente después de exportar de Canva.
 
 ## Ejemplo completo (flujo versículo)
 
@@ -78,22 +67,15 @@ pega los textos de `bloques_canva`.
     "verse_text": "Todo lo puedo en Cristo que me fortalece.",
     "footer": "@ibm_joven"
   },
-  "links_templates": {
-    "post": "https://www.canva.com/design/XXXXX/edit",
-    "story": "https://www.canva.com/design/YYYYY/edit"
-  },
-  "assets_links": {
-    "drive_folder": "",
-    "fotos": [],
-    "export_link": ""
-  }
+  "link_template_post": "https://www.canva.com/design/XXXXX/edit",
+  "link_template_story": "https://www.canva.com/design/YYYYY/edit"
 }
 ```
 
 ## Cómo se usa en cada flujo
 
 1. **n8n genera** el JSON con los campos de arriba.
-2. **Nodo Set** agrega los `links_templates` (fijos por flujo).
+2. **Nodo Set** agrega los `link_template_post`/`link_template_story` (fijos por flujo).
 3. **Nodo Telegram** envía un mensaje formateado con el `copy_post`, `hook`,
    links a templates y un checklist rápido.
 4. El operador **abre Canva**, duplica el template, pega los `bloques_canva`.
