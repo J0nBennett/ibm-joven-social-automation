@@ -1,105 +1,151 @@
 # Guia de inicio rapido
 
-## Requisitos minimos
+## Requisitos
 
 - Cuenta de Google (para Google Sheets)
 - Cuenta de Canva gratuita
-- Cuenta de Telegram + un bot creado con @BotFather
+- Cuenta de Telegram + bot creado con @BotFather
 - Acceso a n8n (cloud o self-host)
-- Opcional: clave de API de un LLM (OpenAI, Gemini, etc.)
+- API Key de Gemini (gratis en aistudio.google.com)
 
 ---
 
-## Opcion 1: n8n Cloud (mas simple)
+## Paso 1: Configurar variables de entorno
 
-1. Crear cuenta gratuita en [n8n.io](https://n8n.io).
-2. Ir a **Settings > Import Workflow**.
-3. Subir los archivos JSON de `01-n8n/workflows/`.
-4. Configurar las credenciales en **Settings > Credentials** (ver `01-n8n/credentials/credentials.example.md`).
-5. Activar los workflows.
-
-> Con el plan gratuito de n8n cloud tenes un limite de ejecuciones. Para IBM Joven deberia ser suficiente (pocas publicaciones diarias).
-
-## Opcion 2: Self-host con Docker (mas control)
-
-Si preferis tener n8n corriendo en tu propia maquina o servidor:
+Copiar `.env.example` a `.env` y completar los valores:
 
 ```bash
-# 1. Crear carpeta de datos
-mkdir -p ~/n8n-data
-
-# 2. Levantar n8n con Docker
-docker run -d \
-  --name n8n \
-  -p 5678:5678 \
-  -v ~/n8n-data:/home/node/.n8n \
-  --env-file .env \
-  n8nio/n8n
-
-# 3. Abrir http://localhost:5678 en el navegador
+cp .env.example .env
 ```
 
-Crear un archivo `.env` en la raiz (ver `.env.example` si existe) con las variables necesarias:
+Variables necesarias:
 
-```
-N8N_BASIC_AUTH_ACTIVE=true
-N8N_BASIC_AUTH_USER=admin
-N8N_BASIC_AUTH_PASSWORD=tu_password_seguro
-```
-
-> Nunca commitear el archivo `.env`. Ya esta en `.gitignore`.
+| Variable | Donde obtenerla |
+|----------|----------------|
+| `TELEGRAM_BOT_TOKEN` | @BotFather en Telegram |
+| `TELEGRAM_CHAT_ID` | Ver seccion "Configurar Telegram" abajo |
+| `GOOGLE_SHEETS_ID` | URL de tu Sheet: `docs.google.com/spreadsheets/d/{ID}/edit` |
+| `GOOGLE_SHEETS_TAB` | Nombre de la hoja (ej: "Hoja 1") |
+| `GEMINI_API_KEY` | aistudio.google.com > Get API Key |
 
 ---
 
-## Importar workflows JSON
+## Paso 2: Preparar Google Sheet
 
-1. Abrir n8n en el navegador.
-2. Click en **"+"** para crear un nuevo workflow.
-3. Click en los **3 puntos** (menu) > **Import from file**.
-4. Seleccionar el JSON correspondiente de `01-n8n/workflows/`:
-   - `versiculo-diario.json` - Flujo de versiculo del dia
-   - `anuncio-evento.json` - Flujo de anuncios de eventos
-   - `fotos-culto-pack.json` - Flujo de pack de fotos del culto
-5. Revisar que los nodos esten correctos y conectar las credenciales.
+1. Crear una Google Sheet nueva.
+2. Importar `02-content/sheets/content_db_template.csv` (Archivo > Importar > Subir).
+3. Verificar que las columnas coincidan exactamente (ver `02-content/sheets/SHEETS_SETUP.md`).
+4. Copiar el ID de la Sheet desde la URL.
+5. En n8n, la Sheet se conecta via OAuth2 (te pedira login de Google al configurar la credencial).
+
+### Columnas de la Sheet
+
+```
+id | tipo | fecha_publicacion | titulo | texto_base | verse_ref | verse_text |
+copy_generado | hashtags | cta | hook | canva_template_post | canva_template_story |
+imagen_export_link | estado | aprobado_por | timestamp
+```
+
+### Estados validos
+
+| Estado | Significado |
+|--------|------------|
+| `pendiente` | Fila cargada, esperando procesamiento |
+| `listo` | n8n genero el copy y envio el pack por Telegram |
+| `publicado` | Contenido publicado en redes |
 
 ---
 
-## Preparar Google Sheet / CSV
-
-1. Crear una Google Sheet nueva o importar el archivo `02-content/sheets/content_db_template.csv`.
-2. Respetar las columnas exactas del template (no renombrar ni reordenar).
-3. Compartir la Sheet con la cuenta de servicio de Google que uses en n8n (si aplica).
-4. Copiar el ID de la Sheet (esta en la URL: `docs.google.com/spreadsheets/d/{SHEET_ID}/edit`).
-5. Usar ese ID en los nodos de Google Sheets dentro de n8n.
-
-> Si preferis trabajar solo con CSV, podes usarlo directamente con nodos de lectura de archivo en n8n.
-
----
-
-## Configurar Telegram (bot + chat_id)
+## Paso 3: Configurar Telegram
 
 ### Crear el bot
 
 1. Abrir Telegram y buscar **@BotFather**.
 2. Enviar `/newbot` y seguir los pasos.
-3. Copiar el **token** que te da BotFather (formato: `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`).
-4. **No pegar el token en ningun archivo del repo.** Guardarlo en las credenciales de n8n o en variables de entorno.
+3. Copiar el **token** (formato: `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`).
 
 ### Obtener el chat_id
 
-1. Crear un grupo de Telegram para aprobaciones (ej: "IBM Joven - Aprobaciones").
+1. Crear un grupo de Telegram (ej: "IBM Joven – Packs").
 2. Agregar el bot al grupo.
 3. Enviar un mensaje en el grupo.
-4. Visitar `https://api.telegram.org/bot{TU_TOKEN}/getUpdates` (reemplazar `{TU_TOKEN}`).
-5. Buscar el campo `"chat": {"id": -100XXXXXXXXXX}`. Ese numero negativo es el `chat_id`.
-6. Guardar el `chat_id` en n8n junto con el token del bot.
+4. Visitar: `https://api.telegram.org/bot{TU_TOKEN}/getUpdates`
+5. Buscar `"chat": {"id": -100XXXXXXXXXX}`. Ese numero es el `chat_id`.
 
-### Uso en los workflows
+---
 
-Los workflows envian un mensaje al grupo de Telegram con el contenido generado. El aprobador responde "ok" o sugiere cambios. Solo despues de la aprobacion el flujo continua hacia la publicacion.
+## Paso 4: Configurar n8n
+
+### Opcion A: n8n Cloud
+
+1. Crear cuenta en [n8n.io](https://n8n.io).
+2. Importar los 3 workflows JSON desde `01-n8n/workflows/`.
+3. Configurar credenciales en **Settings > Credentials**:
+   - **Google Sheets OAuth2**: login con tu cuenta de Google.
+   - **Gemini API Key**: crear credencial tipo "Query Auth" con `name=key`, `value=tu_api_key`.
+   - **Telegram Bot**: pegar el bot token.
+
+### Opcion B: Self-host con Docker Compose (recomendado)
+
+```bash
+docker-compose up -d
+```
+
+Esto levanta n8n con las variables de `.env`, timezone de Argentina y volumen persistente.
+
+> Alternativa sin Docker Compose:
+> ```bash
+> mkdir -p ~/n8n-data
+> docker run -d \
+>   --name n8n \
+>   -p 5678:5678 \
+>   -v ~/n8n-data:/home/node/.n8n \
+>   --env-file .env \
+>   n8nio/n8n:1.76.1
+> ```
+
+Abrir `http://localhost:5678` e importar los workflows.
+
+> **Importante:** Cambiar `N8N_BASIC_AUTH_PASSWORD` en `.env` antes de deployar. No usar el valor por defecto.
+
+---
+
+## Paso 5: Importar workflows
+
+1. Abrir n8n en el navegador.
+2. Click en **"+"** > **Import from file**.
+3. Importar cada JSON:
+   - `versiculo-diario.json` – Versiculo del dia (cron 7am + manual)
+   - `anuncio-evento.json` – Anuncios de eventos (manual)
+   - `fotos-culto-pack.json` – Fotos del culto (manual)
+4. En cada workflow, abrir los nodos y conectar las credenciales:
+   - Nodos "Leer Sheet" y "Actualizar Sheet" → Google Sheets OAuth2
+   - Nodo "Gemini" → Query Auth (name=key, value=API key)
+   - Nodo "Enviar Pack Telegram" → Telegram Bot Token
+5. Activar el workflow de versiculo (tiene cron). Los otros 2 son manuales.
+
+---
+
+## Paso 6: Crear templates en Canva
+
+1. Crear 3 templates en Canva (ver `03-design/canva/templates.md`):
+   - Post 1080x1080 (versiculo, anuncio)
+   - Story 1080x1920 (versiculo, anuncio)
+   - Carrusel 1080x1080 multi-pagina (fotos)
+2. Copiar los links de edicion de cada template.
+3. Actualizar los links en el nodo PACK_LISTO de cada workflow.
+
+---
+
+## Paso 7: Probar
+
+1. Cargar una fila de prueba en la Sheet con `tipo=versiculo`, `estado=pendiente`.
+2. Ejecutar el workflow manualmente desde n8n (boton "Execute Workflow").
+3. Verificar que llega el pack a Telegram.
+4. Verificar que la Sheet se actualizo a `estado=listo`.
 
 ---
 
 ## Siguiente paso
 
-Leete `OPERACION.md` para entender el flujo diario de trabajo.
+Lee `OPERACION.md` para entender el flujo diario de trabajo.

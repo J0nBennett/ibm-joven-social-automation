@@ -1,9 +1,9 @@
-# Variables de entorno y secretos
+# ── Variables de entorno y secretos ──
 .env
 .env.*
 !.env.example
 
-# Credenciales
+# ── Credenciales ──
 *.pem
 *.key
 *.p12
@@ -11,35 +11,35 @@ credentials.json
 service-account.json
 token.json
 
-# Exports de diseño (archivos pesados)
+# ── Exports de diseño (archivos pesados) ──
 03-design/canva/exports/*.png
 03-design/canva/exports/*.jpg
 03-design/canva/exports/*.jpeg
 03-design/canva/exports/*.pdf
 
-# Node modules (si se usa algun script local)
+# ── Node modules ──
 node_modules/
 
-# OS
+# ── OS ──
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# IDE
+# ── IDE ──
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# n8n local data
+# ── n8n local data ──
 .n8n/
 
-# Logs
+# ── Logs ──
 *.log
 
-# Claude Code
+# ── Claude Code ──
 .claude/
 
-# Temporal
+# ── Temporal / basura ──
 tmp/
 temp/

@@ -1,83 +1,113 @@
 # Guia de operacion
 
-Documento que describe los flujos operativos diarios y los roles involucrados.
+Paso a paso de cada flujo, desde la carga de contenido hasta la publicacion.
 
 ---
 
 ## Flujo 1: Versiculo diario
 
-Frecuencia: todos los dias (automatico con cron o manual).
+**Trigger:** Cron a las 7:00 AM (o ejecucion manual).
 
-| Paso | Quien | Que hace | Tiempo estimado |
-|------|-------|----------|-----------------|
-| 1 | n8n (auto) | Lee la fila del dia desde Google Sheet/CSV | - |
-| 2 | n8n (auto) | Envia el versiculo + datos al LLM con el prompt de `prompt_versiculo.md` | - |
-| 3 | n8n (auto) | Recibe el copy generado (hook, reflexion, CTA, hashtags) | - |
-| 4 | n8n (auto) | Envia preview al grupo de Telegram para aprobacion | - |
-| 5 | **Aprobador** | Revisa el copy en Telegram. Responde "ok" o pide cambios | 2-3 min |
-| 6 | **Editor** | Abre el template de Canva, pega los textos en los placeholders | 5-10 min |
-| 7 | **Editor** | Exporta la imagen (PNG 1080x1080 para post, 1080x1920 para story) | 1-2 min |
-| 8 | **Publicador** | Sube la imagen a Instagram/Facebook con el copy generado | 3-5 min |
-| 9 | **Publicador** | Marca la fila como "publicado" en la Sheet y anota la fecha/hora | 1 min |
+| Paso | Quien | Que hace |
+|------|-------|----------|
+| 1 | **Editor** | Carga una fila en la Sheet con `tipo=versiculo`, datos del versiculo y `estado=pendiente` |
+| 2 | n8n (auto) | Lee la fila, envia datos a Gemini, genera copy |
+| 3 | n8n (auto) | Arma el PACK_LISTO y lo envia por Telegram |
+| 4 | n8n (auto) | Actualiza la Sheet a `estado=listo` |
+| 5 | **Editor** | Recibe el pack en Telegram, abre template Canva |
+| 6 | **Editor** | Pega los `bloques_canva` (titulo, versiculo, footer) |
+| 7 | **Editor** | Exporta PNG (post 1080x1080 + story 1080x1920) |
+| 8 | **Editor** | Publica en IG + FB con el `copy_post` y `hashtags` |
+| 9 | **Editor** | Marca `estado=publicado` en la Sheet |
 
-**Tiempo total estimado por persona**: 10-20 minutos.
+**Que llega por Telegram:**
+- Hook + Copy post + Copy story
+- Hashtags y CTA
+- Links a templates Canva (post y story)
+- Checklist rapido de publicacion
 
 ---
 
 ## Flujo 2: Anuncio de evento
 
-Frecuencia: segun necesidad (cuando hay actividades programadas).
+**Trigger:** Manual (el editor ejecuta cuando hay un evento nuevo).
 
-| Paso | Quien | Que hace | Tiempo estimado |
-|------|-------|----------|-----------------|
-| 1 | **Editor** | Carga los datos del evento en la Sheet (titulo, fecha, lugar, descripcion) | 5 min |
-| 2 | n8n (manual) | Se ejecuta el workflow de anuncio. Envia datos al LLM con `prompt_anuncio.md` | - |
-| 3 | n8n (auto) | Genera copy para post y story, CTA, hashtags y sugerencias para Canva | - |
-| 4 | n8n (auto) | Envia preview al grupo de Telegram | - |
-| 5 | **Aprobador** | Revisa y aprueba o pide ajustes | 3-5 min |
-| 6 | **Editor** | Diseña en Canva usando el template de anuncio | 10-15 min |
-| 7 | **Publicador** | Publica en redes y marca como "publicado" | 3-5 min |
+| Paso | Quien | Que hace |
+|------|-------|----------|
+| 1 | **Editor** | Carga fila en Sheet con `tipo=anuncio`, datos del evento y `estado=pendiente` |
+| 2 | **Editor** | Ejecuta el workflow manualmente en n8n |
+| 3 | n8n | Lee la fila, genera copy + bloques_canva con Gemini |
+| 4 | n8n | Envia PACK_LISTO por Telegram |
+| 5 | n8n | Actualiza Sheet a `estado=listo` |
+| 6 | **Editor** | Abre template Canva de anuncio, pega titulo/subtitulo/cuerpo/footer |
+| 7 | **Editor** | Verifica fecha, hora y lugar en el diseño |
+| 8 | **Editor** | Exporta PNG y publica |
+| 9 | **Editor** | Marca `estado=publicado` en la Sheet |
 
-**Tiempo total estimado**: 20-30 minutos.
+**Que llega por Telegram:**
+- Hook + Copy post + Copy story
+- Bloques Canva (titulo, subtitulo, cuerpo, footer)
+- Links a templates Canva (post y story)
+- Checklist rapido
 
 ---
 
 ## Flujo 3: Fotos del culto
 
-Frecuencia: despues de cada servicio/culto (1-2 veces por semana).
+**Trigger:** Manual (despues de seleccionar las fotos del servicio).
 
-| Paso | Quien | Que hace | Tiempo estimado |
-|------|-------|----------|-----------------|
-| 1 | **Editor** | Selecciona las mejores fotos (5-10 fotos) y las sube a una carpeta compartida | 10-15 min |
-| 2 | **Editor** | Carga una fila en la Sheet con tipo "fotos", titulo del culto y fecha | 3 min |
-| 3 | n8n (manual) | Se ejecuta el workflow. Envia datos al LLM con `prompt_caption_fotos.md` | - |
-| 4 | n8n (auto) | Genera caption, hashtags y versiculo sugerido | - |
-| 5 | n8n (auto) | Envia preview al grupo de Telegram | - |
-| 6 | **Aprobador** | Revisa el caption y el versiculo sugerido | 2-3 min |
-| 7 | **Editor** | Arma el carrusel o album en Canva (opcional) o sube directo | 5-10 min |
-| 8 | **Publicador** | Publica el pack de fotos con el caption aprobado | 3-5 min |
-| 9 | **Publicador** | Marca como "publicado" en la Sheet | 1 min |
+| Paso | Quien | Que hace |
+|------|-------|----------|
+| 1 | **Editor** | Selecciona las mejores fotos y las sube a la carpeta de Drive |
+| 2 | **Editor** | Carga fila en Sheet con `tipo=fotos`, titulo del culto y `estado=pendiente` |
+| 3 | **Editor** | Ejecuta el workflow en n8n |
+| 4 | n8n | Lee la fila, genera caption + versiculo sugerido con Gemini |
+| 5 | n8n | Envia PACK_LISTO por Telegram |
+| 6 | n8n | Actualiza Sheet a `estado=listo` |
+| 7 | **Editor** | Abre template carrusel en Canva, inserta fotos |
+| 8 | **Editor** | Verifica que el versiculo sugerido sea correcto |
+| 9 | **Editor** | Exporta cada slide como PNG |
+| 10 | **Editor** | Publica carrusel en IG + FB con el caption |
+| 11 | **Editor** | Marca `estado=publicado` en la Sheet |
 
-**Tiempo total estimado**: 25-35 minutos.
+**Que llega por Telegram:**
+- Hook + Caption del carrusel
+- Versiculo sugerido (verificar que sea real)
+- Hashtags y CTA
+- Link a template carrusel Canva
+- Link a carpeta de fotos en Drive
+- Checklist rapido
 
 ---
 
-## Roles sugeridos
+## Output estandar
 
-| Rol | Responsabilidad | Puede ser |
-|-----|----------------|-----------|
-| **Editor** | Carga contenido en la Sheet, diseña en Canva, ajusta textos | Lider de comunicacion o voluntario de diseño |
-| **Aprobador** | Revisa contenido en Telegram antes de publicar. Tiene la ultima palabra | Lider de jovenes o pastor |
-| **Publicador** | Publica el contenido aprobado en las redes sociales | Editor u otra persona con acceso a las cuentas |
+Los 3 flujos producen un JSON con formato comun. Ver detalle completo en `02-content/OUTPUT_ESTANDAR.md`.
 
-> Una misma persona puede cumplir varios roles, pero se recomienda que **al menos la aprobacion sea de alguien distinto** al que genero el contenido.
+Campos principales: `hook`, `copy_post`, `copy_story`, `hashtags`, `cta`, `bloques_canva`, `links_templates`.
+
+---
+
+## Estados en la Sheet
+
+```
+pendiente  →  listo  →  publicado
+   ↑            ↑          ↑
+ Editor     n8n (auto)   Editor
+```
+
+| Estado | Significado | Quien lo cambia |
+|--------|------------|-----------------|
+| `pendiente` | Fila cargada, esperando procesamiento | Editor |
+| `listo` | Pack generado y enviado por Telegram | n8n (automatico) |
+| `publicado` | Contenido publicado en redes | Editor/Publicador |
 
 ---
 
 ## Notas importantes
 
-- **No se publica nada sin aprobacion.** Si el aprobador no responde, el contenido queda en estado "pendiente".
-- **Los tiempos son estimados.** Dependen de la experiencia del equipo y la complejidad del contenido.
-- **Canva es manual.** No usamos API de Canva; el diseño lo hace una persona con los templates pre-armados.
-- **El LLM es una ayuda, no un reemplazo.** El copy generado siempre se revisa y puede editarse antes de publicar.
-- **Registrar todo.** Cada publicacion queda marcada en la Sheet con fecha, estado y quien aprobo.
+- **No se publica nada sin revision humana.** El pack se entrega por Telegram, pero la publicacion es manual.
+- **Canva es manual.** No usamos API de Canva; el diseño lo hace una persona con templates.
+- **El LLM es una ayuda, no un reemplazo.** El copy se revisa y puede editarse.
+- **Verificar versiculos.** Especialmente en el flujo de fotos, donde el LLM sugiere el versiculo.
+- **Registrar todo en la Sheet.** Cada publicacion queda con estado, timestamp y quien aprobo.

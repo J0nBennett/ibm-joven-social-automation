@@ -1,149 +1,300 @@
 {
-  "name": "IBM Joven - Fotos del Culto Pack",
+  "name": "IBM Joven – Fotos del Culto Pack",
   "nodes": [
     {
       "parameters": {},
       "id": "manual-trigger",
-      "name": "Trigger Manual",
+      "name": "Manual",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [250, 400]
+      "position": [220, 300]
     },
     {
       "parameters": {
-        "values": {
-          "string": [
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.GOOGLE_SHEETS_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $env.GOOGLE_SHEETS_TAB }}"
+        },
+        "filtersUI": {
+          "values": [
             {
-              "name": "nota",
-              "value": "NODO PLACEHOLDER: Conectar aqui un nodo Google Sheets para leer la fila de fotos. Filtrar por tipo='fotos' y estado='pendiente'. Columnas necesarias: titulo, texto_base, fecha_publicacion."
+              "lookupColumn": "tipo",
+              "lookupValue": "fotos"
+            },
+            {
+              "lookupColumn": "estado",
+              "lookupValue": "pendiente"
             }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "id": "sheets-read",
+      "name": "Leer Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [460, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CONFIGURAR",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "" },
+          "conditions": [
+            {
+              "id": "check-row",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "isNotEmpty" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-hay-fila",
+      "name": "Hay fila pendiente?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=Info: No hay fotos de culto pendientes en la Sheet. Agrega una fila con tipo=fotos y estado=pendiente.",
+        "additionalFields": {}
+      },
+      "id": "telegram-sin-pendientes",
+      "name": "Aviso Sin Pendientes",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [940, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "CONFIGURAR",
+          "name": "Telegram Bot IBM Joven"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"Sos un community manager cristiano para IBM Joven (ministerio juvenil de la Iglesia Bautista Maranata).\\n\\nGenera un caption para un carrusel de fotos de un culto/reunión en Instagram.\\n\\nDatos:\\n- Título: {{ $json.titulo }}\\n- Descripción: {{ $json.texto_base }}\\n- Fecha: {{ $json.fecha_publicacion }}\\n\\nReglas:\\n- Tono agradecido, cálido, comunitario\\n- Máximo 2 emojis\\n- Transmitir gratitud y ganas de volver\\n- Sugerir un versículo relacionado con comunidad/adoración/fe\\n- Máximo 100 palabras el caption\\n- Incluir #IBMJoven en hashtags\\n- Hook de máx 12 palabras\\n- CTA de máx 12 palabras\\n\\nResponde SOLO con JSON válido (sin markdown, sin ```json):\\n{\\n  \\\"hook\\\": \\\"\\\",\\n  \\\"copy_post\\\": \\\"\\\",\\n  \\\"hashtags\\\": \\\"\\\",\\n  \\\"cta\\\": \\\"\\\",\\n  \\\"versiculo_sugerido\\\": {\\n    \\\"referencia\\\": \\\"\\\",\\n    \\\"texto\\\": \\\"\\\"\\n  },\\n  \\\"bloques_canva\\\": {\\n    \\\"titulo\\\": \\\"\\\",\\n    \\\"footer\\\": \\\"@ibm_joven\\\"\\n  }\\n}\"\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"topP\": 0.95,\n    \"maxOutputTokens\": 1024\n  }\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "gemini-llm",
+      "name": "Gemini – Generar Caption",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [940, 300],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "CONFIGURAR",
+          "name": "Gemini API Key"
+        }
+      },
+      "notes": "Credencial httpQueryAuth: name=key, value=$GEMINI_API_KEY"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\nif (!response.candidates || !response.candidates[0] || !response.candidates[0].content) {\n  const reason = response.candidates?.[0]?.finishReason || 'sin respuesta';\n  throw new Error('Gemini no genero contenido. Razon: ' + reason);\n}\n\nconst text = response.candidates[0].content.parts[0].text;\n\nlet clean = text.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\nlet parsed;\n\ntry {\n  parsed = JSON.parse(clean);\n} catch (e) {\n  const match = clean.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    parsed = JSON.parse(match[0]);\n  } else {\n    throw new Error('No se pudo parsear respuesta LLM: ' + clean.substring(0, 200));\n  }\n}\n\nconst required = ['hook', 'copy_post', 'cta', 'hashtags', 'bloques_canva'];\nconst missing = required.filter(f => !parsed[f]);\nif (missing.length > 0) {\n  throw new Error('Campos faltantes en respuesta LLM: ' + missing.join(', '));\n}\n\n// Sanitizar: rechazar si el LLM genero URLs sospechosas o codigo\nconst allText = JSON.stringify(parsed);\nconst suspicious = /(https?:\\/\\/(?!www\\.canva\\.com|drive\\.google\\.com)[^\\s\"]+|<script|javascript:|eval\\(|document\\.)/i;\nif (suspicious.test(allText)) {\n  throw new Error('Contenido sospechoso detectado en respuesta LLM. Revisar manualmente.');\n}\n\nreturn [{ json: parsed }];"
+      },
+      "id": "parse-response",
+      "name": "Parsear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1180, 300],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            { "id": "hook", "name": "hook", "value": "={{ $json.hook }}", "type": "string" },
+            { "id": "copy_post", "name": "copy_post", "value": "={{ $json.copy_post }}", "type": "string" },
+            { "id": "copy_story", "name": "copy_story", "value": "", "type": "string" },
+            { "id": "hashtags", "name": "hashtags", "value": "={{ $json.hashtags }}", "type": "string" },
+            { "id": "cta", "name": "cta", "value": "={{ $json.cta }}", "type": "string" },
+            { "id": "versiculo_sugerido", "name": "versiculo_sugerido", "value": "={{ JSON.stringify($json.versiculo_sugerido) }}", "type": "string" },
+            { "id": "bloques_canva", "name": "bloques_canva", "value": "={{ JSON.stringify($json.bloques_canva) }}", "type": "string" },
+            { "id": "link_template_carrusel", "name": "link_template_carrusel", "value": "https://www.canva.com/design/DAHCdIrkgZM/DanL_9kdQGPnMSZnD_AXng/edit", "type": "string" },
+            { "id": "drive_folder", "name": "drive_folder", "value": "https://drive.google.com/drive/folders/CARPETA_FOTOS_CULTO", "type": "string" },
+            { "id": "tipo", "name": "tipo", "value": "fotos", "type": "string" },
+            { "id": "fecha", "name": "fecha", "value": "={{ new Date().toISOString().slice(0,10) }}", "type": "string" },
+            { "id": "row_id", "name": "row_id", "value": "={{ $('Leer Sheet').first().json.id }}", "type": "string" }
           ]
         }
       },
-      "id": "set-google-sheets",
-      "name": "[TODO] Google Sheets - Leer datos del culto",
+      "id": "set-pack",
+      "name": "PACK_LISTO",
       "type": "n8n-nodes-base.set",
-      "typeVersion": 2,
-      "position": [500, 400]
+      "typeVersion": 3.4,
+      "position": [1420, 300]
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "nota",
-              "value": "NODO PLACEHOLDER: Conectar aqui un nodo de LLM. Enviar el prompt de prompt_caption_fotos.md con los datos del culto. Esperar respuesta JSON con: copy, hashtags, versiculo_sugerido (referencia + texto)."
-            }
-          ]
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=*FOTOS DEL CULTO* – {{ $json.fecha }}\n\n*Hook:* {{ $json.hook }}\n\n*Caption carrusel:*\n{{ $json.copy_post }}\n\n*Versiculo sugerido:*\n{{ $json.versiculo_sugerido }}\n\n{{ $json.hashtags }}\n\n{{ $json.cta }}\n\n─────────────────\n*Template Canva carrusel:*\n{{ $json.link_template_carrusel }}\n\n*Carpeta fotos:*\n{{ $json.drive_folder }}\n\n*Checklist:*\n1. Seleccionar mejores fotos de la carpeta\n2. Abrir template carrusel en Canva\n3. Insertar fotos y pegar textos\n4. Verificar que el versiculo sugerido sea real\n5. Exportar cada slide como PNG\n6. Publicar carrusel en IG + FB\n7. Pegar caption con hashtags\n8. Marcar como publicado en Sheet",
+        "additionalFields": {
+          "parse_mode": "Markdown"
         }
       },
-      "id": "set-llm",
-      "name": "[TODO] LLM - Generar caption",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 2,
-      "position": [750, 400]
+      "id": "telegram-send",
+      "name": "Enviar Pack Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1660, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "CONFIGURAR",
+          "name": "Telegram Bot IBM Joven"
+        }
+      }
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "nota",
-              "value": "NODO PLACEHOLDER: Conectar aqui un nodo Telegram para enviar el caption generado y el versiculo sugerido al grupo de aprobaciones. El aprobador debe verificar que el versiculo sea correcto."
-            }
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.GOOGLE_SHEETS_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $env.GOOGLE_SHEETS_TAB }}"
+        },
+        "columns": {
+          "mappingMode": "manual",
+          "values": [
+            { "column": "id", "value": "={{ $json.row_id }}" },
+            { "column": "estado", "value": "listo" },
+            { "column": "copy_generado", "value": "={{ $json.copy_post }}" },
+            { "column": "hashtags", "value": "={{ $json.hashtags }}" },
+            { "column": "cta", "value": "={{ $json.cta }}" },
+            { "column": "hook", "value": "={{ $json.hook }}" },
+            { "column": "timestamp", "value": "={{ new Date().toISOString() }}" }
           ]
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
         }
       },
-      "id": "set-telegram",
-      "name": "[TODO] Telegram - Enviar para aprobacion",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 2,
-      "position": [1000, 400]
-    },
-    {
-      "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "nota",
-              "value": "NODO PLACEHOLDER: Conectar aqui un nodo Google Sheets para actualizar la fila con copy_generado, hashtags, verse_ref, verse_text (del versiculo sugerido), estado='aprobado' y aprobado_por."
-            }
-          ]
+      "id": "sheets-update",
+      "name": "Actualizar Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1900, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CONFIGURAR",
+          "name": "Google Sheets OAuth2"
         }
-      },
-      "id": "set-update-sheet",
-      "name": "[TODO] Google Sheets - Actualizar estado",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 2,
-      "position": [1250, 400]
+      }
     },
     {
       "parameters": {
-        "content": "## Workflow: Fotos del Culto Pack\n\nFlujo completo:\n1. Trigger manual (el editor lo ejecuta despues de seleccionar las fotos)\n2. Leer datos del culto desde Google Sheets\n3. Enviar datos al LLM con prompt_caption_fotos.md\n4. Enviar caption + versiculo sugerido a Telegram para aprobacion\n5. Si aprobado: actualizar Sheet con estado 'aprobado'\n6. El armado del carrusel/album y la publicacion son manuales\n\nNota: las fotos se seleccionan y suben manualmente a una carpeta compartida.\nEste workflow solo genera el caption y lo envia para aprobacion.\n\nCredenciales necesarias:\n- Google Sheets (OAuth2 o Service Account)\n- LLM API Key (OpenAI / Gemini)\n- Telegram Bot Token + Chat ID\n\nVer: 02-content/prompts/prompt_caption_fotos.md"
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=ERROR en flujo Fotos del Culto:\n\n{{ $json.error?.message || JSON.stringify($json) }}\n\nRevisa la ejecucion en n8n para mas detalles.",
+        "additionalFields": {}
       },
-      "id": "notas",
-      "name": "Notas del workflow",
+      "id": "telegram-error",
+      "name": "Notificar Error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1420, 540],
+      "credentials": {
+        "telegramApi": {
+          "id": "CONFIGURAR",
+          "name": "Telegram Bot IBM Joven"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Flujo: Fotos del Culto – Pack Carrusel\n\nTrigger: Manual (editor sube fotos a Drive y ejecuta).\n\nPasos:\n1. Lee primera fila con tipo=fotos, estado=pendiente\n2. Verifica que haya una fila (si no, avisa por Telegram)\n3. Envia datos al LLM (Gemini) para generar caption + versiculo sugerido\n4. Parsea y valida la respuesta JSON\n5. Arma PACK_LISTO con link a template carrusel y carpeta Drive\n6. Envia pack formateado por Telegram\n7. Actualiza fila en Google Sheets (estado -> listo)\n\nManejo de errores:\n- Sin filas pendientes -> aviso por Telegram\n- Error en Gemini o parseo -> notificacion de error por Telegram\n\nCredenciales necesarias:\n- Google Sheets OAuth2 (lectura/escritura)\n- Gemini API Key (httpQueryAuth: name=key)\n- Telegram Bot Token",
+        "width": 400,
+        "height": 400
+      },
+      "id": "notes",
+      "name": "Notas",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [200, 100]
+      "position": [140, 40]
     }
   ],
   "connections": {
-    "Trigger Manual": {
+    "Manual": {
       "main": [
-        [
-          {
-            "node": "[TODO] Google Sheets - Leer datos del culto",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Leer Sheet", "type": "main", "index": 0 }]
       ]
     },
-    "[TODO] Google Sheets - Leer datos del culto": {
+    "Leer Sheet": {
       "main": [
-        [
-          {
-            "node": "[TODO] LLM - Generar caption",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Hay fila pendiente?", "type": "main", "index": 0 }]
       ]
     },
-    "[TODO] LLM - Generar caption": {
+    "Hay fila pendiente?": {
       "main": [
-        [
-          {
-            "node": "[TODO] Telegram - Enviar para aprobacion",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Gemini – Generar Caption", "type": "main", "index": 0 }],
+        [{ "node": "Aviso Sin Pendientes", "type": "main", "index": 0 }]
       ]
     },
-    "[TODO] Telegram - Enviar para aprobacion": {
+    "Gemini – Generar Caption": {
       "main": [
-        [
-          {
-            "node": "[TODO] Google Sheets - Actualizar estado",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Parsear Respuesta", "type": "main", "index": 0 }],
+        [{ "node": "Notificar Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parsear Respuesta": {
+      "main": [
+        [{ "node": "PACK_LISTO", "type": "main", "index": 0 }],
+        [{ "node": "Notificar Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "PACK_LISTO": {
+      "main": [
+        [{ "node": "Enviar Pack Telegram", "type": "main", "index": 0 }]
+      ]
+    },
+    "Enviar Pack Telegram": {
+      "main": [
+        [{ "node": "Actualizar Sheet", "type": "main", "index": 0 }]
       ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": ""
   },
   "staticData": null,
   "tags": [
-    {
-      "name": "ibm-joven"
-    },
-    {
-      "name": "fotos"
-    }
-  ]
+    { "name": "ibm-joven" },
+    { "name": "fotos" },
+    { "name": "produccion" }
+  ],
+  "pinData": {}
 }

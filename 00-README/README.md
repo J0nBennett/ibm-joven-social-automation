@@ -1,60 +1,97 @@
-# IBM Joven - Automatizacion de Redes Sociales
+# IBM Joven – Automatizacion de Redes Sociales
 
-Repositorio de automatizaciones para las redes sociales de **IBM Joven** (Iglesia Bautista Maranata - Ministerio Joven).
+Repositorio de automatizaciones para las redes sociales de **IBM Joven** (Iglesia Bautista Maranata – Ministerio Joven).
+
+## Vision
+
+Generar un **pack listo para publicar** (imagen + copy) para Instagram/Facebook con el minimo esfuerzo manual. La IA genera los textos, n8n orquesta el flujo, y Telegram entrega el pack al equipo.
 
 ## Que resuelve
 
-Este proyecto automatiza las tareas repetitivas de publicacion en redes sociales:
+| Flujo | Frecuencia | Output |
+|-------|-----------|--------|
+| Versiculo diario | Diario (cron 7am) | Post + Story |
+| Anuncio de evento | Segun necesidad (manual) | Post + Story |
+| Fotos del culto | Post-servicio (manual) | Carrusel + Caption |
 
-- **Versiculo diario**: genera copy, hashtags y diseño listo para publicar cada dia.
-- **Anuncios de eventos**: prepara las piezas graficas y textos para actividades de la iglesia.
-- **Fotos del culto**: arma packs de publicacion a partir de las fotos tomadas en los servicios.
+## Filosofia: 90% automatico + revision humana
 
-## Filosofia: 90% automatico + aprobacion humana
+Nada se publica sin que una persona lo revise. La automatizacion genera textos, arma plantillas y entrega el pack por Telegram. El humano abre Canva, pega los textos, revisa, exporta y publica.
 
-Nada se publica sin que una persona lo revise y apruebe. La automatizacion se encarga del trabajo pesado (generar textos, armar plantillas, recordar fechas), pero **siempre hay un paso de aprobacion humana** antes de que el contenido llegue a las redes.
-
-Esto garantiza que el mensaje sea fiel, respetuoso y alineado con los valores de la iglesia.
-
-## Stack recomendado
+## Stack
 
 | Herramienta | Funcion | Costo |
 |---|---|---|
-| **n8n** | Orquestador de flujos (workflows) | Gratis (self-host) o plan free en cloud |
-| **Canva** | Diseño grafico con templates | Gratis (plan basico) |
-| **Google Sheets / CSV** | Base de datos de contenido | Gratis |
-| **Telegram** | Canal de aprobacion y notificaciones | Gratis |
-| **LLM (OpenAI / Gemini / local)** | Generacion de copy y hashtags | Segun proveedor |
+| **n8n** | Orquestador de flujos | Gratis (self-host) o plan free cloud |
+| **Canva** | Diseño con templates (sin API) | Gratis (plan basico) |
+| **Google Sheets** | Base de contenidos + log de estados | Gratis |
+| **Telegram** | Entrega del pack listo al equipo | Gratis |
+| **Gemini Flash** | Generacion de copy y hashtags | Gratis (tier gratuito) |
 
 ## Mapa de carpetas
 
 ```
 ibm-joven-social-automation/
-  00-README/          -> Documentacion general, quickstart y operacion
-  01-n8n/
-    workflows/        -> Exports JSON de los flujos de n8n
-    credentials/      -> Guia de credenciales (sin secretos)
-  02-content/
-    sheets/           -> Template CSV de la base de contenido
-    prompts/          -> Prompts para IA (versiculo, anuncio, fotos)
-  03-design/
-    canva/            -> Guias de templates Canva y brand kit
-    canva/exports/    -> Carpeta para guardar exports PNG (no versionados)
-  04-ops/
-    checklists/       -> Checklists de aprobacion y publicacion
-  05-security/        -> Reglas de seguridad y uso de IA
+├── .env.example              # Variables de entorno (plantilla)
+├── .gitignore
+├── docker-compose.yml        # Docker Compose para n8n self-hosted
+├── 00-README/
+│   ├── README.md             # Este archivo
+│   ├── QUICKSTART.md         # Como empezar desde cero
+│   └── OPERACION.md          # Paso a paso por cada flujo
+├── 01-n8n/
+│   ├── workflows/
+│   │   ├── versiculo-diario.json
+│   │   ├── anuncio-evento.json
+│   │   └── fotos-culto-pack.json
+│   └── credentials/
+│       └── credentials.example.md
+├── 02-content/
+│   ├── OUTPUT_ESTANDAR.md    # Formato JSON comun de los 3 flujos
+│   ├── sheets/
+│   │   ├── content_db_template.csv
+│   │   └── SHEETS_SETUP.md   # Como configurar la Google Sheet
+│   └── prompts/
+│       ├── prompt_versiculo.md
+│       ├── prompt_anuncio.md
+│       └── prompt_caption_fotos.md
+├── 03-design/
+│   └── canva/
+│       ├── templates.md      # Specs de templates Canva
+│       ├── brand-kit.md      # Identidad visual
+│       └── exports/          # PNGs exportados (no versionados)
+├── 04-ops/
+│   ├── checklists/
+│   │   ├── checklist_publicacion.md
+│   │   └── checklist_aprobacion.md
+│   └── troubleshooting.md    # Guia de problemas comunes
+└── 05-security/
+    └── safe_ai_rules.md
 ```
+
+## Como funciona cada flujo
+
+Todos los flujos siguen el mismo patron:
+
+```
+Sheet (pendiente) → n8n → Gemini (genera copy) → PACK_LISTO → Telegram → Sheet (listo)
+```
+
+El output es un JSON estandarizado (ver `02-content/OUTPUT_ESTANDAR.md`) con:
+- `hook`, `copy_post`, `copy_story`, `hashtags`, `cta`
+- `bloques_canva` (textos exactos para pegar en Canva)
+- `link_template_post` / `link_template_story` (URLs a los templates de Canva)
 
 ## Reglas del repositorio
 
-- **Nunca commitear tokens, passwords ni claves de API.** Usar variables de entorno.
-- Los archivos `.example` muestran la estructura esperada sin datos sensibles.
-- Los exports de Canva (PNG/JPG) no se versionan en git (ver `.gitignore`).
+- **Nunca commitear tokens, passwords ni claves de API.** Usar `.env`.
 - Los workflows de n8n se exportan como JSON y se versionan normalmente.
+- Los exports de Canva (PNG/JPG) no se versionan (ver `.gitignore`).
+- Si modificas un prompt, probalo al menos 3 veces antes de commitear.
+- Toda publicacion pasa por revision humana. Sin excepciones.
 
-## Contribuir
+## Empezar
 
-1. Leete el `QUICKSTART.md` y `OPERACION.md` en esta carpeta.
-2. Si modificas un workflow de n8n, exportalo como JSON y reemplaza el archivo en `01-n8n/workflows/`.
-3. Si cambias un prompt, probalo al menos 3 veces antes de commitear.
-4. Toda publicacion pasa por aprobacion humana. Sin excepciones.
+1. Lee `QUICKSTART.md` para configurar todo desde cero.
+2. Lee `OPERACION.md` para entender el flujo diario.
+3. Lee `OUTPUT_ESTANDAR.md` para entender el formato de salida.
